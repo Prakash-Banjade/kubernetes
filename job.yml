@@ -1,0 +1,24 @@
+kind: Job
+apiVersion: batch/v1 # API version for Jobs is under 'batch' group
+
+metadata:
+  name: test-job
+  namespace: nginx
+
+spec:
+  completions: 1 # Run the job until it completes successfully once
+  parallelism: 1 # Only one pod runs at a time (no parallel pods)
+
+  template: # Template for the pod to be created by the job
+    metadata:
+      labels:
+        app: test-job # Useful for selecting or tracking the pod
+
+    spec:
+      containers:
+        - name: test-job
+          image: busybox:latest # Minimal image with basic shell utilities
+          command: ["sh", "-c", "echo Hello from a Kubernetes Job && sleep 15"]
+          # Run a shell command that prints a message and sleeps
+
+      restartPolicy: Never # Job pods should not restart automatically
