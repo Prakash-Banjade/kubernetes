@@ -1,0 +1,49 @@
+kind: CronJob
+apiVersion: batch/v1 # API group for CronJob
+
+metadata:
+  name: backup-cron
+
+spec:
+  schedule: "* * * * *" # CRON syntax - Runs the job every minute
+
+  jobTemplate: # Template for the Job that runs on schedule
+    spec:
+      template:
+        metadata:
+          labels:
+            app: backup-app
+
+        spec:
+          containers:
+            - name: backup-app
+              image: busybox
+              imagePullPolicy: IfNotPresent # Pull image only if not cached locally
+
+              command: # Shell command to execute inside the container
+                - sh
+                - -c
+                - > # Run as shell script - multiline string
+                  echo "Backuping database..." ;            
+                  mkdir -p /backup &&                       
+                  mkdir -p /database &&                     
+                  cp -r /database /backup/ ;
+
+              volumeMounts: # Mount host directories into the container
+                - name: database # Volume name (declared below)
+                  mountPath: /database # Mount host's /var/lib/mysql here
+                - name: backup # Another volume name
+                  mountPath: /backup # Mount host's /backup directory here
+
+          volumes: # Define the volumes to mount
+            - name: database
+              hostPath:
+                path: /var/lib/mysql # Host path to access database files
+                type: DirectoryOrCreate # Create if it doesn't exist
+
+            - name: backup
+              hostPath:
+                path: /backup # Host path to store backups
+                type: DirectoryOrCreate # Create if it doesn't exist
+
+          restartPolicy: OnFailure # Restart pod only if it fails (Job best practice)
