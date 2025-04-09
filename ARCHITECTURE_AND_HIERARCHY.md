@@ -1,127 +1,149 @@
-## 🗂️ Kubernetes Hierarchy Overview
+# Kubernetes
 
-```
-Cluster
-├── Nodes
-│   ├── Control Plane Node(s)
-│   │   ├── kube-apiserver
-│   │   ├── kube-controller-manager
-│   │   ├── kube-scheduler
-│   │   └── etcd
-│   └── Worker Node(s)
-│       ├── kubelet
-│       ├── kube-proxy
-│       └── Container Runtime (Docker, containerd, etc.)
-│
-├── Namespaces
-│   ├── default
-│   ├── kube-system
-│   ├── kube-public
-│   └── custom-namespaces
-│       ├── Deployments
-│       │   ├── ReplicaSets
-│       │   │   ├── Pods
-│       │   │   │   └── Containers
-│       │   └── ConfigMaps / Secrets
-│       ├── Services
-│       └── ResourceQuotas / Limits
+### Tools to create Kubernetes clusters:
+
+| **Tool** | **Runs on** | **Use Case** | **Complexity** | **Real-World Use** |
+| --- | --- | --- | --- | --- |
+| **Kind** | Docker | Testing/CI | Low | Dev |
+| **Minikube** | VM/Docker | Local Dev/Learning | Low | Dev |
+| **Kubeadm** | Any servers | Real Cluster Setup | Medium-High | Production |
+
+We will be using Kind. To install Kind in windows, you can use `Chocolatey` package manager and run the command: 
+
+```bash
+choco install kind
 ```
 
----
+### Creating Kubernetes Cluster
 
-## Detailed Breakdown
+To create Kubernetes cluster, you need a configuration file which is basically a `.yaml` file. The file usually looks like this:
 
-### 1. **Cluster**
+```yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
 
-- The **whole system** that runs your Kubernetes environment.
-- Consists of multiple **Nodes** (machines—either VMs or physical).
+nodes: # we are requiring one control-plane and 3 worker nodes
+  - role: control-plane
+    image: kindest/node:v1.31.2
+  - role: worker
+    image: kindest/node:v1.31.2
+  - role: worker
+    image: kindest/node:v1.31.2
+  - role: worker
+    image: kindest/node:v1.31.2  
+    extraPortMappings: # expose ports 80 and 443
+      - containerPort: 80 # http port
+        hostPort: 80
+        protocol: TCP
+      - containerPort: 443 # https port
+        hostPort: 443
+        protocol: TCP
+```
 
----
+Now create cluster using following `kind` command:
 
-### 2. **Nodes**
+```powershell
+kind create cluster --name=my-kube-cluster --config=config.yml
+```
 
-### a. **Control Plane Node**
+Now set `kubectl` context to “kind-my-kube-cluster” as:
 
-Manages the entire cluster. Runs components:
+```powershell
+kubectl cluster-info --context kind-mu-kube-cluster
+```
 
-- **kube-apiserver** – front door for all API calls.
-- **etcd** – distributed key-value store for all cluster data.
-- **kube-scheduler** – decides which node should run a new pod.
-- **kube-controller-manager** – watches and maintains desired state (e.g., ensures pods match deployment specs).
+## Some `kubectl` commands:
 
-### b. **Worker Node**
+### Nodes
 
-Runs the actual workloads (Pods):
+```powershell
+kubectl get nodes # list all nodes i.e. control-plane, worker nodese
+kubectl describe <node-name> # get description about the node
+```
 
-- **kubelet** – talks to the control plane, runs containers via container runtime.
-- **kube-proxy** – manages networking and load balancing.
-- **Container runtime** – like Docker or containerd to run containers.
+Namespace
 
----
+A **Namespace** is a logical partition inside a Kubernetes cluster that groups resources like Pods, Services, Deployments, etc.
 
-### 3. **Namespaces**
+```powershell
+kubectl get ns # list all namespaces
+kubectl create ns nginx # create `nginx` namespace, can be any
+kubectl delete ns nginx # delete ns nginx
+```
 
-- Logical partitions to group resources.
-- Enables multi-tenancy and separation (like `dev`, `prod`, etc.).
+### Pods
 
----
+A **Pod** is the **smallest and simplest unit** in the Kubernetes object model that you can deploy. Think of it as a **wrapper around one or more containers**, plus some shared resources like networking and storage.
 
-### 4. **Deployments**
+```powershell
+kubectl get pods # list pods, from `default` ns
+kubectl get pods -n kube-system # from `kube-system` ns
+kubectl get pods -n <ns-name> -o wide # get more details of pods, eg: worker(node) they are running on
+kubectl run nginx --image=nginx # create pod named `nginx`, in default ns
+kubectl run nginx --image=nginx -n nginx # create pod `nginx` in nginx namespace
+kubectl delete pod nginx # delete pod nginx
 
-- Manage **ReplicaSets**, which ensure a certain number of **Pods** are always running.
-- Good for self-healing, scaling, and rolling updates.
+kubectl exec -it pod/nginx-pod -n nginx -- bash # entering in `nginx-pod` pod running in ns `nginx`
+kubectl describe pod/<pod-name> -n <ns-name> # get details & history of pod
+kubectl logs pods/<pod-name> -n <ns-name> # get logs inside of pod
+```
 
----
+**Tip**: You usually don’t create Pods directly in production. Instead, you use **Deployments**, **ReplicaSets**, or **Jobs** that manage Pods for scalability and resiliency.
 
-### 5. **Pods**
+### Deployments
 
-- Smallest unit deployed by Kubernetes.
-- Usually contains **one container**, but can have more (e.g., sidecar pattern).
-- Shares networking and storage between containers in the same pod.
+A Deployment manages a set of Pods to run an application workload, usually one that doesn't maintain state.
 
----
+A *Deployment* provides declarative updates for [Pods](https://kubernetes.io/docs/concepts/workloads/pods/) and [ReplicaSets](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/).
 
-### 6. **Containers**
+```powershell
+kubectl get deployments # get all deployments
+kubectl get deployments -n <ns-name> # get all deployments of specific ns
+kubectl delete deployment <dep-name> # delete deployment
 
-- The actual application runtime.
-- Each container runs an image (like `nginx`, `node`, etc.).
-- Managed by container runtimes (e.g., containerd, Docker).
-
----
-
-### 7. **Services**
-
-- Expose Pods to other Pods or external clients.
-- Types: `ClusterIP`, `NodePort`, `LoadBalancer`, `ExternalName`.
-
----
-
-### 8. **Other Objects Inside Namespace**
-
-- **ConfigMaps** – for non-secret config values.
-- **Secrets** – for sensitive data like passwords.
-- **ResourceQuotas** – limit CPU, memory usage per namespace.
-- **Ingress** – expose HTTP/HTTPS routes to services.
-- **Volumes** – persistent or ephemeral storage.
-
----
-
-## Visual Tree Format (Compact)
+kubectl scale deployemnt/<dep-name> -n <ns-name> --replicas=5 # scale deployment to 5 replicas
+kubectl set image deployment/<dep-name> -n <ns-name> <image-name>=<new-image-verion> # updating pods/container, deployment performs rolling updates
+		eg: kubectl set image deployment/nginx-deployment -n nginx nginx=nginx:1.27.3
 
 ```
-Cluster
-├── Control Plane
-│   ├── kube-apiserver
-│   ├── etcd
-│   ├── kube-scheduler
-│   └── controller-manager
-├── Worker Nodes
-│   ├── kubelet
-│   ├── kube-proxy
-│   └── container runtime
-└── Namespaces
-    └── Deployments
-        └── ReplicaSets
-            └── Pods
-                └── Containers
+
+# `Manifest files` instead of `kubectl run` commands manually
+
+A **manifest file** in Kubernetes is a YAML (or JSON) configuration file that **defines the desired state** of a Kubernetes resource (like a Pod, Deployment, Service, etc.). Instead of running `kubectl run` commands manually, you **declare your infrastructure as code** using manifest files.
+
+### Creating namespace manifest file
+
+```yaml
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: nginx
+```
+
+### Creating pods manifest file
+
+```yaml
+kind: Pod
+apiVersion: v1
+metadata:
+  name: nginx
+  namespace: nginx
+spec:
+  containers:
+    - name: nginx
+      image: nginx:latest
+      ports: 
+        - containerPort: 80
+```
+
+### Applying manifest file
+
+```powershell
+kubectl appply -f file-name.yml
+```
+
+Deleting resources defined by a manifest file
+
+```powershell
+kubectl delete -f file-name.yml
 ```
