@@ -1,3 +1,5 @@
+# Kubernetes
+
 ### Tools to create Kubernetes clusters:
 
 | **Tool** | **Runs on** | **Use Case** | **Complexity** | **Real-World Use** |
@@ -52,10 +54,11 @@ kubectl cluster-info --context kind-mu-kube-cluster
 
 ## Some `kubectl` commands:
 
-Nodes
+### Nodes
 
 ```powershell
 kubectl get nodes # list all nodes i.e. control-plane, worker nodese
+kubectl describe <node-name> # get description about the node
 ```
 
 Namespace
@@ -68,19 +71,52 @@ kubectl create ns nginx # create `nginx` namespace, can be any
 kubectl delete ns nginx # delete ns nginx
 ```
 
-Pods
+### Pods
 
 A **Pod** is the **smallest and simplest unit** in the Kubernetes object model that you can deploy. Think of it as a **wrapper around one or more containers**, plus some shared resources like networking and storage.
 
 ```powershell
 kubectl get pods # list pods, from `default` ns
 kubectl get pods -n kube-system # from `kube-system` ns
+kubectl get pods -n <ns-name> -o wide # get more details of pods, eg: worker(node) they are running on
 kubectl run nginx --image=nginx # create pod named `nginx`, in default ns
 kubectl run nginx --image=nginx -n nginx # create pod `nginx` in nginx namespace
 kubectl delete pod nginx # delete pod nginx
 
 kubectl exec -it pod/nginx-pod -n nginx -- bash # entering in `nginx-pod` pod running in ns `nginx`
-kubectl describe pod/nginx-pod -n nginx # get details & history of pod
+kubectl describe pod/<pod-name> -n <ns-name> # get details & history of pod
+kubectl logs pods/<pod-name> -n <ns-name> # get logs inside of pod
+```
+
+**Tip**: You usually don’t create Pods directly in production. Instead, you use **Deployments**, **ReplicaSets**, or **Jobs** that manage Pods for scalability and resiliency.
+
+### Deployment
+
+A Deployment manages a set of Pods to run an application workload, usually one that doesn't maintain state.
+
+A *Deployment* provides declarative updates for [Pods](https://kubernetes.io/docs/concepts/workloads/pods/) and [ReplicaSets](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/).
+
+```bash
+kubectl get deployments # get all deployments
+kubectl get deployments -n <ns-name> # get all deployments of specific ns
+kubectl delete deployment <dep-name> # delete deployment
+
+kubectl scale deployemnt/<dep-name> -n <ns-name> --replicas=5 # scale deployment to 5 replicas
+kubectl set image deployment/<dep-name> -n <ns-name> <image-name>=<new-image-verion> # updating pods/container, deployment performs rolling updates
+		eg: kubectl set image deployment/nginx-deployment -n nginx nginx=nginx:1.27.3
+
+```
+
+### Service
+
+In Kubernetes, a Service is a method for exposing a network application that is running as one or more [Pods](https://kubernetes.io/docs/concepts/workloads/pods/) in your cluster.
+
+```bash
+kubectl get services -n <ns-name> # get services
+
+kubectl port-forward service/<service-name> -n <ns-name> <local-port>:<service-port> --address=0.0.0.0 # port forwarding from service to host machine
+# Without --address=0.0.0.0, it would only accept traffic from localhost
+	eg: kubectl port-forward service/test-service -n nginx 80:80 --address=0.0.0.0
 ```
 
 # `Manifest files` instead of `kubectl run` commands manually
@@ -112,8 +148,14 @@ spec:
         - containerPort: 80
 ```
 
-### Applying manifest file
+Applying manifest file
 
 ```powershell
 kubectl appply -f file-name.yml
+```
+
+Deleting resources defined by a manifest file
+
+```powershell
+kubectl delete -f file-name.yml
 ```

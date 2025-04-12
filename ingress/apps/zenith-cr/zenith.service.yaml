@@ -1,0 +1,15 @@
+kind: Service
+apiVersion: v1
+
+metadata:
+  name: zenith-service
+  namespace: example-ingress-ns
+  
+spec:
+  selector:
+    app: zenith # Matches pods with this label
+  ports:
+    - protocol: TCP
+      port: 3000 # Port on the service
+      targetPort: 3000 # Port on the pod/container
+  type: ClusterIP # Only accessible inside the cluster

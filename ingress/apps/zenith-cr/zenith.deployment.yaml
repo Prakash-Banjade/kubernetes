@@ -1,0 +1,23 @@
+kind: Deployment
+apiVersion: apps/v1
+
+metadata:
+  name: zenith-deployment
+  namespace: example-ingress-ns
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zenith
+  template:
+    metadata:
+      name: zenith
+      labels:
+        app: zenith
+    spec:
+      containers:
+        - name: zenith
+          image: prakashbanjade/zenith
+          ports:
+            - containerPort: 3000

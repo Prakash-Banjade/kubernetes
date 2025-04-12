@@ -1,0 +1,15 @@
+kind: Service
+apiVersion: v1
+
+metadata:
+  name: nginx-service
+  namespace: example-ingress-ns
+  
+spec:
+  selector:
+    app: nginx # Matches pods with this label
+  ports:
+    - protocol: TCP
+      port: 80 # Port on the service
+      targetPort: 80 # Port on the pod/container
+  type: ClusterIP # Only accessible inside the cluster

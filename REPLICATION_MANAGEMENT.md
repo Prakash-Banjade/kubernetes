@@ -36,7 +36,6 @@ kind: ReplicaSet
 ```
 
 > You almost never need to define a ReplicaSet manually — Deployments handle this for you.
-> 
 
 ---
 
