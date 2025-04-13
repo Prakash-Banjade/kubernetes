@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+
+metadata:
+  name: example-ingress
+  namespace: example-ingress-ns
+  annotations:
+    # nginx.ingress.kubernetes.io/rewrite-target: /$2 # $2 refers to everything after /web — e.g., api, docs
+    # nginx.ingress.kubernetes.io/use-regex: "true"
+
+spec:
+  rules:
+    - http:
+        paths:
+          - pathType: ImplementationSpecific
+            path: /nginx(/|$)(.*)
+            backend:
+              service:
+                name: nginx-service
+                port:
+                  number: 80
+          - pathType: Prefix
+            path: /zenith
+            backend:
+              service:
+                name: zenith-service
+                port:
+                  number: 3000
