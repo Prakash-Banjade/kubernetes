@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+
+metadata:
+  name: example-ingress
+  namespace: example-ingress-ns
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: / # necessary to rewrite the path back to the root
+
+spec:
+  rules:
+  - http:
+      paths:
+      - pathType: Prefix # If the beginning of the request path matches the specified path, it's a match: the behaviour is different on how kubernetes spec says and how nginx handles prefix path
+        path: /nginx
+        backend:
+          service:
+            name: nginx-service
+            port:
+              number: 80
+      - pathType: Prefix
+        path: /zenith
+        backend:
+          service:
+            name: zenith-service
+            port:
+              number: 3000
